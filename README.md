@@ -18,9 +18,13 @@ Make some modifications and **commit** your change, then **push** it to the remo
 
 ### Task 2-1
 
-**Create a new branch** (you can assign a branch name on your own) from branch ``master``. Then make some updates, stash and commit them.
+**Create a new branch** (you can assign a branch name on your own) from branch ``master``. Then make some updates, **stash** them only.
 
 ### Task 2-2
+
+Check the status of the local repository and commit the stashed changes.
+
+### Task 2-3
 
 **Push the new branch** to the remote repository and create a **pull request**. Note that you should choose ``master`` to be the compared branch.
 
