@@ -1,4 +1,5 @@
 from PIL import Image
+from constants import OPENAICLIENT, OPENAI_JSON_SCHEMA
 from dotenv import load_dotenv
 import numpy as np
 from openai import OpenAI
@@ -8,32 +9,7 @@ import os
 import base64
 from io import BytesIO
 
-OPENAI_JSON_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "Calories(kcal)": {
-            "type": "number",
-            "description": "The number of calories in the food item."
-        },
-        "Carbohydrates(g)": {
-            "type": "number",
-            "description": "The amount of carbohydrates in grams."
-        },
-        "Protein(g)": {
-            "type": "number",
-            "description": "The amount of protein in grams."
-        },
-        "Fat(g)": {
-            "type": "number",
-            "description": "The amount of fat in grams."
-        },
-    },
-    "required": ["Calories(kcal)", "Carbohydrates(g)", "Protein(g)", "Fat(g)"],
-    "additionalProperties": False
-}
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAICLIENT = OpenAI(api_key=OPENAI_API_KEY)
 
 def import_image(image_path):
 
