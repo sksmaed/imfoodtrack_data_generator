@@ -52,7 +52,7 @@ def encode_image(image_array):
 
 def openai_api_query(image_array):
     response = OPENAICLIENT.chat.completions.create(
-        model="gpt-4-turbo",
+        model="gpt-4o",
         messages=[
             {
                 "role": "user",
