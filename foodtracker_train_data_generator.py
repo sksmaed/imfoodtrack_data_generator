@@ -37,7 +37,7 @@ OPENAI_JSON_SCHEMA = {
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY_1")
 OPENAI_CLIENT = OpenAI(api_key=OPENAI_API_KEY)
 genai.configure(api_key=GEMINI_API_KEY)
 GEMINI_CLIENT = genai.GenerativeModel("gemini-1.5-flash")
@@ -178,11 +178,24 @@ def process_folder(folder_path, filename):
         print(f"Folder {folder_path} does not exist.")
         return
 
+    if os.path.exists(filename):
+        existing_df = pd.read_csv(filename)
+        existing_files = set(existing_df['filename'].tolist())
+        print(f"Found {len(existing_files)} images already processed.")
+    else:
+        existing_files = set()
+        print("No existing file found, will process all images.")
+
     image_paths = glob(os.path.join(folder_path, "*.jpg")) + glob(os.path.join(folder_path, "*.png"))
-    print(f"Found {len(image_paths)} images.")
+    print(f"Found {len(image_paths)} images in folder.")
 
     for image_path in image_paths:
-        print(f"Processing: {image_path}")
+        basename = os.path.basename(image_path)
+        if basename in existing_files:
+            print(f"Skipping {basename} (already processed)")
+            continue
+
+        print(f"Processing: {basename}")
         try:
             image_array = import_image(image_path)
 
@@ -203,7 +216,7 @@ def process_folder(folder_path, filename):
             keys = ["Calories(kcal)", "Carbohydrates(g)", "Protein(g)", "Fat(g)"]
 
             info_dict = {
-                "filename": os.path.basename(image_path),
+                "filename": basename,
                 **{
                     key: round(np.mean([model[key] for model in models]), 2)
                     for key in keys
@@ -211,9 +224,9 @@ def process_folder(folder_path, filename):
             }
 
             save_to_csv(info_dict, filename)
-            break
         except Exception as e:
             print(f"Error processing {image_path}: {e}")
+            raise e
 
 def save_to_csv(data, filename):
     new_df = pd.DataFrame([data])
@@ -230,8 +243,9 @@ def save_to_csv(data, filename):
 def main():
     print("Please provide the path to the image folder:")
     folder_path = input().strip()
-    process_folder(folder_path, "nutritional_info.csv")
-    print("Nutritional information saved to nutritional_info.csv")
+    file_name = "nutritional_info_lunch_box.csv"
+    process_folder(folder_path, file_name)
+    print(f"Nutritional information saved to {file_name}")
 
 if __name__ == "__main__":
     main()
