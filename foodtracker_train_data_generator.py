@@ -57,13 +57,47 @@ def encode_image(image_array):
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode()
 
-def openai_api_query(image_array):
+def openai_api_query(image_array, example_image_1, example_image_2):
     response = OPENAI_CLIENT.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4.1",
         messages=[
             {
                 "role": "user",
                 "content": [
+                    # 第一組示範
+                    { "type": "text", "text": "以下是一張範例圖片與對應的營養分析結果：" },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": "data:image/png;base64," + encode_image(example_image_1)
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": json.dumps({
+                            "Calories(kcal)": 718,
+                            "Carbohydrates(g)": 74.27,
+                            "Protein(g)": 36.27,
+                            "Fat(g)": 30.54
+                        }, indent=4)
+                    },
+
+                    { "type": "text", "text": "另一個範例：" },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": "data:image/png;base64," + encode_image(example_image_2)
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": json.dumps({
+                            "Calories(kcal)": 546.5,
+                            "Carbohydrates(g)": 64.9,
+                            "Protein(g)": 53.5,
+                            "Fat(g)": 6.9
+                        }, indent=4)
+                    },
                     {
                         "type": "text",
                         "text": "你是營養專家，你的任務是從一張圖片中提取食物的營養成分。請根據以下流程完成營養成分提取:\n\n"
@@ -99,6 +133,7 @@ def openai_api_query(image_array):
         ],
         tool_choice={"type": "function", "function": {"name": "extract_nutrition"}},
     )
+
     if response.choices[0].message.tool_calls:
         tool_args = response.choices[0].message.tool_calls[0].function.arguments
         return json.loads(tool_args)
@@ -173,7 +208,7 @@ def openrouter_api_query(image_array, model):
     else:
         raise ValueError("API response did not include tool_calls.")    
 
-def process_folder(folder_path, filename):
+def process_folder(folder_path, filename, example_image_1, example_image_2):
     if not os.path.exists(folder_path):
         print(f"Folder {folder_path} does not exist.")
         return
@@ -189,6 +224,9 @@ def process_folder(folder_path, filename):
     image_paths = glob(os.path.join(folder_path, "*.jpg")) + glob(os.path.join(folder_path, "*.png"))
     print(f"Found {len(image_paths)} images in folder.")
 
+    example_image_1_array = import_image(example_image_1)
+    example_image_2_array = import_image(example_image_2)
+
     for image_path in image_paths:
         basename = os.path.basename(image_path)
         if basename in existing_files:
@@ -200,19 +238,19 @@ def process_folder(folder_path, filename):
             image_array = import_image(image_path)
 
             print("OpenAI API Querying...")
-            info_openai = openai_api_query(image_array)
-            print("Gemini API Querying...")
+            info_openai = openai_api_query(image_array, example_image_1_array, example_image_2_array)
+            """print("Gemini API Querying...")
             info_gemini = gemini_api_query(image_array)
             print("Llama Maverick (Openrouter API) Querying...")
             info_llama = openrouter_api_query(image_array, "meta-llama/llama-4-maverick:free")
             print("Google Gemma (Openrouter API) Querying...")
-            info_gemma = openrouter_api_query(image_array, "google/gemma-3-12b-it:free")
+            info_gemma = openrouter_api_query(image_array, "google/gemma-3-12b-it:free")"""
             print("OpenAI 回傳：", info_openai)
-            print("Gemini 回傳：", info_gemini)
-            print("Llama 回傳：", info_llama)
-            print("Gemma 回傳：", info_gemma)
+            # print("Gemini 回傳：", info_gemini)
+            # print("Llama 回傳：", info_llama)
+            # print("Gemma 回傳：", info_gemma)
 
-            models = [info_openai, info_gemini, info_llama, info_gemma]
+            models = [info_openai]
             keys = ["Calories(kcal)", "Carbohydrates(g)", "Protein(g)", "Fat(g)"]
 
             info_dict = {
@@ -224,6 +262,8 @@ def process_folder(folder_path, filename):
             }
 
             save_to_csv(info_dict, filename)
+            if info_dict["Calories(kcal)"] < 500:
+                save_to_csv(info_dict, "low_calorie_lunch_box.csv")
         except Exception as e:
             print(f"Error processing {image_path}: {e}")
             raise e
@@ -243,8 +283,10 @@ def save_to_csv(data, filename):
 def main():
     print("Please provide the path to the image folder:")
     folder_path = input().strip()
-    file_name = "nutritional_info_lunch_box.csv"
-    process_folder(folder_path, file_name)
+    file_name = "lunch_box_few_shot.csv"
+    example_image_1 = import_image("example_image_1.png")
+    example_image_2 = import_image("example_image_2.png")
+    process_folder(folder_path, file_name, example_image_1, example_image_2)
     print(f"Nutritional information saved to {file_name}")
 
 if __name__ == "__main__":
